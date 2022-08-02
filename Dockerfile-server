@@ -1,0 +1,22 @@
+# Base image for build
+FROM golang:alpine3.16 as base
+
+RUN apk update && \
+    apk add build-base git curl zip bash alpine-sdk
+
+WORKDIR /app
+
+# Copy dependencies manifest and download dependencies
+COPY go.mod go.sum ./
+RUN go mod download 
+
+# Copy rest of the source code and build the app from source
+COPY . .
+RUN go build -o app -a -tags static_all -tags musl ./cmd/server/
+
+# Final image for running app
+FROM alpine:3.16 as app
+
+# Run app
+COPY --from=base /app/app /
+ENTRYPOINT ["/app"]
